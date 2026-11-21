@@ -281,7 +281,8 @@ void StartDefaultTask(void *argument) {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for (;;) {
-    osDelay(1);
+    (void)HAL_IWDG_Refresh(&hiwdg);
+    osDelay(10u);
   }
   /* USER CODE END StartDefaultTask */
 }
