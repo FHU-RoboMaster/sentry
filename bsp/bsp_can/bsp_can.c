@@ -1,6 +1,9 @@
 #include "bsp_can.h"
 
 #include <string.h>
+#include <stdatomic.h>
+
+#include "bsp_log.h"
 
 // ==================== 对象表与内部工具 ====================
 
@@ -9,6 +12,10 @@
  * 下标范围为 [0, BSP_CAN_NUMBER)。
  */
 static STM32CAN_t* stm32_can_map[BSP_CAN_NUMBER] = {0};
+/* 每条 CAN 总线的发送故障只报告一次；成功发送后清除故障标记。 */
+#if BSP_LOG_ENABLED
+static _Atomic uint8_t bsp_can_tx_fault_reported;
+#endif
 
 /**
  * @brief 硬件外设基址 → 逻辑 CAN ID
@@ -161,22 +168,26 @@ static err_t BSP_CAN_send_std_data(CAN_HandleTypeDef* can_handle,
  */
 err_t STM32CAN_Init(STM32CAN_t* self, CAN_HandleTypeDef* can_handle) {
   if (self == NULL) {
+    LOG_ERROR("CAN", "初始化失败：对象为空");
     return PTR_NULL;
   }
 
   self->last_error_ = PENDING;
   if ((can_handle == NULL) || (can_handle->Instance == NULL)) {
     self->last_error_ = PTR_NULL;
+    LOG_ERROR("CAN", "初始化失败：HAL句柄无效");
     return self->last_error_;
   }
 
   const BSP_CAN_t id = BSP_CAN_get_id(can_handle->Instance);
   if (!BSP_CAN_is_valid_id(id)) {
     self->last_error_ = NOT_FOUND;
+    LOG_ERROR("CAN", "初始化失败：不支持的CAN外设");
     return self->last_error_;
   }
   if ((stm32_can_map[id] != NULL) && (stm32_can_map[id] != self)) {
     self->last_error_ = BUSY;
+    LOG_ERROR("CAN", "CAN%u 初始化失败：已被其他对象注册", ((unsigned)id + 1U));
     return self->last_error_;
   }
 
@@ -187,6 +198,7 @@ err_t STM32CAN_Init(STM32CAN_t* self, CAN_HandleTypeDef* can_handle) {
   self->started_ = false;
   stm32_can_map[id] = self;
   self->last_error_ = OK;
+  LOG_DEBUG("CAN", "CAN%u 初始化完成", ((unsigned)id + 1U));
   return self->last_error_;
 }
 
@@ -201,6 +213,7 @@ err_t STM32CAN_Init(STM32CAN_t* self, CAN_HandleTypeDef* can_handle) {
 err_t STM32CAN_SubscribeRx(STM32CAN_t* self, STM32CAN_RxCallback_t callback,
                            void* context) {
   if ((self == NULL) || (callback == NULL)) {
+    LOG_ERROR("CAN", "接收订阅失败：对象或回调为空");
     return PTR_NULL;
   }
   for (uint8_t index = 0U; index < self->subscriber_count_; ++index) {
@@ -208,15 +221,19 @@ err_t STM32CAN_SubscribeRx(STM32CAN_t* self, STM32CAN_RxCallback_t callback,
     if ((subscriber->callback_ == callback) &&
         (subscriber->context_ == context)) {
       self->last_error_ = OK;
+      LOG_DEBUG("CAN", "接收订阅已存在 订阅数=%u",
+                (unsigned)self->subscriber_count_);
       return self->last_error_;
     }
   }
   if (self->started_) {
     self->last_error_ = STATE_ERR;
+    LOG_WARN("CAN", "拒绝接收订阅：CAN已启动");
     return self->last_error_;
   }
   if (self->subscriber_count_ >= STM32CAN_RX_SUBSCRIBER_CAPACITY) {
     self->last_error_ = FULL;
+    LOG_ERROR("CAN", "接收订阅失败：订阅表已满");
     return self->last_error_;
   }
 
@@ -225,6 +242,8 @@ err_t STM32CAN_SubscribeRx(STM32CAN_t* self, STM32CAN_RxCallback_t callback,
   subscriber->callback_ = callback;
   subscriber->context_ = context;
   self->last_error_ = OK;
+  LOG_DEBUG("CAN", "接收订阅添加完成 订阅数=%u",
+           (unsigned)self->subscriber_count_);
   return self->last_error_;
 }
 
@@ -237,11 +256,16 @@ err_t STM32CAN_SubscribeRx(STM32CAN_t* self, STM32CAN_RxCallback_t callback,
  */
 err_t STM32CAN_Start(STM32CAN_t* self) {
   if (self == NULL) {
+    LOG_ERROR("CAN", "启动失败：对象为空");
     return PTR_NULL;
   }
   self->last_error_ = BSP_CAN_start_handle(self->can_handle_);
   if (self->last_error_ == OK) {
     self->started_ = true;
+    LOG_DEBUG("CAN", "CAN%u 启动完成", ((unsigned)self->id_ + 1U));
+  } else {
+    LOG_ERROR("CAN", "CAN%u 启动失败 错误码=%d", ((unsigned)self->id_ + 1U),
+              (int)self->last_error_);
   }
   return self->last_error_;
 }
@@ -253,10 +277,12 @@ err_t STM32CAN_Start(STM32CAN_t* self) {
  */
 err_t STM32CAN_ConfigFilter(STM32CAN_t* self, const CAN_FilterTypeDef* filter) {
   if ((self == NULL) || (filter == NULL)) {
+    LOG_ERROR("CAN", "过滤器配置失败：参数为空");
     return PTR_NULL;
   }
   if (self->can_handle_ == NULL) {
     self->last_error_ = PTR_NULL;
+    LOG_ERROR("CAN", "过滤器配置失败：HAL句柄为空");
     return self->last_error_;
   }
 
@@ -265,6 +291,11 @@ err_t STM32CAN_ConfigFilter(STM32CAN_t* self, const CAN_FilterTypeDef* filter) {
        HAL_OK)
           ? OK
           : FAILED;
+  if (self->last_error_ == OK) {
+    LOG_DEBUG("CAN", "CAN%u 过滤器配置完成", ((unsigned)self->id_ + 1U));
+  } else {
+    LOG_ERROR("CAN", "CAN%u 过滤器配置失败", ((unsigned)self->id_ + 1U));
+  }
   return self->last_error_;
 }
 
@@ -276,11 +307,46 @@ err_t STM32CAN_ConfigFilter(STM32CAN_t* self, const CAN_FilterTypeDef* filter) {
 err_t STM32CAN_Send(STM32CAN_t* self, uint32_t std_id, const uint8_t* data,
                     size_t size) {
   if (self == NULL) {
+    LOG_ERROR("CAN", "发送失败：对象为空");
     return PTR_NULL;
   }
-  self->last_error_ =
+  const err_t result =
       BSP_CAN_send_std_data(self->can_handle_, std_id, data, size);
-  return self->last_error_;
+  self->last_error_ = result;
+#if BSP_LOG_ENABLED
+  const bool valid_id = (unsigned)self->id_ < BSP_CAN_NUMBER;
+  const uint8_t fault_bit = valid_id ? (uint8_t)(1U << (unsigned)self->id_) : 0U;
+  const unsigned can_number = (unsigned)self->id_ + 1U;
+  if (result == OK) {
+    if ((atomic_load_explicit(&bsp_can_tx_fault_reported, memory_order_relaxed) &
+         fault_bit) != 0U) {
+      const err_t reported = LOG_INFO("CAN", "CAN%u 发送恢复正常", can_number);
+      if (reported == OK) {
+        atomic_fetch_and_explicit(&bsp_can_tx_fault_reported,
+                                   (uint8_t)~fault_bit, memory_order_relaxed);
+      }
+    }
+    LOG_DEBUG("CAN", "CAN%u 发送已提交 帧ID=0x%03X 长度=%u字节", can_number,
+              (unsigned)std_id, (unsigned)size);
+  } else if (!valid_id ||
+             (atomic_load_explicit(&bsp_can_tx_fault_reported,
+                                    memory_order_relaxed) & fault_bit) == 0U) {
+    const CAN_TypeDef *regs =
+        self->can_handle_ != NULL ? self->can_handle_->Instance : NULL;
+    const uint32_t tsr = regs != NULL ? regs->TSR : 0U;
+    const uint32_t esr = regs != NULL ? regs->ESR : 0U;
+    const err_t reported = LOG_WARN(
+        "CAN", "CAN%u 发送失败 帧ID=0x%03X 错误码=%d TSR=0x%08X ESR=0x%08X 最近错误LEC=%u 发送错误计数TEC=%u",
+        can_number, (unsigned)std_id, (int)result, (unsigned)tsr, (unsigned)esr,
+        (unsigned)((esr & CAN_ESR_LEC) >> CAN_ESR_LEC_Pos),
+        (unsigned)((esr & CAN_ESR_TEC) >> CAN_ESR_TEC_Pos));
+    if (reported == OK && valid_id) {
+      atomic_fetch_or_explicit(&bsp_can_tx_fault_reported, fault_bit,
+                                memory_order_relaxed);
+    }
+  }
+#endif
+  return result;
 }
 
 /**
@@ -291,10 +357,15 @@ err_t STM32CAN_Send(STM32CAN_t* self, uint32_t std_id, const uint8_t* data,
 err_t STM32CAN_SendByHandle(CAN_HandleTypeDef* can_handle, uint32_t std_id,
                             const uint8_t* data, size_t size) {
   if (can_handle == NULL) {
+    LOG_ERROR("CAN", "按句柄发送失败：HAL句柄为空");
     return PTR_NULL;
   }
   STM32CAN_t* self = BSP_CAN_get_object(can_handle);
-  return (self != NULL) ? STM32CAN_Send(self, std_id, data, size) : NOT_FOUND;
+  if (self == NULL) {
+    LOG_ERROR("CAN", "按句柄发送失败：HAL句柄未注册");
+    return NOT_FOUND;
+  }
+  return STM32CAN_Send(self, std_id, data, size);
 }
 
 // ==================== RX 广播与错误查询 ====================

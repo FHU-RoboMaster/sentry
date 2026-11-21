@@ -3,6 +3,7 @@ set(_module_sources
     ${CMAKE_CURRENT_LIST_DIR}/dm_imu/imu_rs485.c
     ${CMAKE_CURRENT_LIST_DIR}/dm_imu/imu_can.c
     ${CMAKE_CURRENT_LIST_DIR}/game/game.c
+    ${CMAKE_CURRENT_LIST_DIR}/I6X/i6x.c
     ${CMAKE_CURRENT_LIST_DIR}/vt13/vt13.c
     ${CMAKE_CURRENT_LIST_DIR}/motor/dj_motor/dj_motor_drv.c
     ${CMAKE_CURRENT_LIST_DIR}/motor/dj_motor/dj_motor_ctrl.c
@@ -16,6 +17,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/DR16
     ${CMAKE_CURRENT_LIST_DIR}/dm_imu
     ${CMAKE_CURRENT_LIST_DIR}/game
+    ${CMAKE_CURRENT_LIST_DIR}/I6X
     ${CMAKE_CURRENT_LIST_DIR}/vt13
     ${CMAKE_CURRENT_LIST_DIR}/motor/dj_motor
     ${CMAKE_CURRENT_LIST_DIR}/motor/dm_motor

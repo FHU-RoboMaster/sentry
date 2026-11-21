@@ -15,18 +15,6 @@
 #include "bsp_dwt.h"
 
 //* ================= 位置式 PID 优化环节实现 =================
-//? 以下静态函数只修改 PIDInstance 的中间项，最终输出仍由 PIDCalculate()
-// 统一汇总。
-
-static void* zmalloc(size_t size) {
-  void* ptr = malloc(size);
-  if (ptr == NULL) {
-    return NULL;
-  }
-
-  memset(ptr, 0, size);
-  return ptr;
-}
 
 //?
 // 梯形积分：用本轮误差和上轮误差的平均值替代矩形积分，降低低采样频率下的积分误差。
@@ -144,40 +132,23 @@ void PIDInit(PIDInstance* pid, float kp, float ki, float kd, float max_output,
   pid->Derivative_LPF_RC = derivative_lpf_rc;
   DWT_GetDeltaT(&pid->DWT_CNT);
 }
-/**
- * @brief 使用显式参数注册并初始化 PID 实例
- * @return PIDInstance* PID实例指针
- */
-PIDInstance* PIDRegister(float kp, float ki, float kd, float max_output,
-                         float max_integral, float deadzone,
-                         PID_Improvement_e improve_flags, float coef_a,
-                         float coef_b, float output_lpf_rc,
-                         float derivative_lpf_rc) {
-  PIDInstance* pid = NULL;
-  pid = (PIDInstance*)zmalloc(sizeof(PIDInstance));
-  if (pid == NULL) {
-    return NULL;
-  }
-  PIDInit(pid, kp, ki, kd, max_output, max_integral, deadzone, improve_flags,
-          coef_a, coef_b, output_lpf_rc, derivative_lpf_rc);
-  return pid;
-}
+
 /**
  * @brief          PID计算
  * @param[in]      PID结构体
- * @param[in]      测量值
  * @param[in]      期望值
+ * @param[in]      测量值
  * @retval         返回空
  */
-float PIDCalculate(PIDInstance* pid, float measure, float ref) {
+float PIDCalculate(PIDInstance* pid, float target, float actual) {
   //! 调用方必须保证 pid 非空；该接口位于高频控制路径，保持旧版本无空指针分支。
   if (pid->Improve & PID_ErrorHandle) f_PID_ErrorHandle(pid);
 
   pid->dt = DWT_GetDeltaT(&pid->DWT_CNT);
 
   // 保存上次的测量值和误差,计算当前error
-  pid->Measure = measure;
-  pid->Ref = ref;
+  pid->Measure = actual;
+  pid->Ref = target;
   pid->Err = pid->Ref - pid->Measure;
 
   //? 死区内跳过完整 PID
@@ -221,4 +192,34 @@ float PIDCalculate(PIDInstance* pid, float measure, float ref) {
   pid->Last_ITerm = pid->ITerm;
 
   return pid->Output;
+}
+
+/**
+ * @brief 位置式 PID 复位，清零运行状态并保留配置参数
+ */
+void PIDReset(PIDInstance* pid) {
+  if (pid == NULL) return;
+
+  /* 输入、误差及积分历史 */
+  pid->Measure = 0.0f;
+  pid->Last_Measure = 0.0f;
+  pid->Ref = 0.0f;
+  pid->Err = 0.0f;
+  pid->Last_Err = 0.0f;
+  pid->Last_ITerm = 0.0f;
+
+  /* PID 各项及滤波历史 */
+  pid->Pout = 0.0f;
+  pid->Iout = 0.0f;
+  pid->Dout = 0.0f;
+  pid->ITerm = 0.0f;
+  pid->Output = 0.0f;
+  pid->Last_Output = 0.0f;
+  pid->Last_Dout = 0.0f;
+
+  pid->ERRORHandler.ERRORCount = 0;
+  pid->ERRORHandler.ERRORType = PID_ERROR_NONE;
+  pid->dt = 0.0f;
+  /* 刷新采样基准，避免把复位前的时间间隔带入下一次计算。 */
+  DWT_GetDeltaT(&pid->DWT_CNT);
 }
