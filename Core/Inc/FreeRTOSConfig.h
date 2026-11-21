@@ -188,15 +188,11 @@ standard names. */
 #define portGET_RUN_TIME_COUNTER_VALUE getRunTimeCounterValue
 /* USER CODE END 2 */
 
-/* Section where parameter definitions can be added (for instance, to override
- * default ones in FreeRTOS.h) */
-/* Application TLS allocation: bsp_log owns this slot in every task.
- * Keep the slot index smaller than configNUM_THREAD_LOCAL_STORAGE_POINTERS.
- * The kernel initializes new-task slots to NULL; no task-side setup is needed.
- */
+/* USER CODE BEGIN Defines */
 #define configBSP_LOG_TLS_ERROR_INDEX 0
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS 1
 /* vsnprintf float conversion keeps state in newlib's per-task _reent. */
 #define configUSE_NEWLIB_REENTRANT 1
+/* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */

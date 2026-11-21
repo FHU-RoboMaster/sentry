@@ -19,13 +19,13 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "FreeRTOS.h"
-#include "cmsis_os.h"
-#include "main.h"
 #include "task.h"
+#include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "iwdg.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -50,86 +50,86 @@
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-    .name = "defaultTask",
-    .stack_size = 256 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  .name = "defaultTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for dr16 */
 osThreadId_t dr16Handle;
 const osThreadAttr_t dr16_attributes = {
-    .name = "dr16",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityHigh,
+  .name = "dr16",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for vt13 */
 osThreadId_t vt13Handle;
 const osThreadAttr_t vt13_attributes = {
-    .name = "vt13",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityHigh,
+  .name = "vt13",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for imu_can */
 osThreadId_t imu_canHandle;
 const osThreadAttr_t imu_can_attributes = {
-    .name = "imu_can",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityHigh,
+  .name = "imu_can",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for i6X */
 osThreadId_t i6XHandle;
 const osThreadAttr_t i6X_attributes = {
-    .name = "i6X",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityHigh,
+  .name = "i6X",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for imu_485 */
 osThreadId_t imu_485Handle;
 const osThreadAttr_t imu_485_attributes = {
-    .name = "imu_485",
-    .stack_size = 512 * 4,
-    .priority = (osPriority_t)osPriorityHigh,
+  .name = "imu_485",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for gimbal */
 osThreadId_t gimbalHandle;
 const osThreadAttr_t gimbal_attributes = {
-    .name = "gimbal",
-    .stack_size = 2048 * 4,
-    .priority = (osPriority_t)osPriorityNormal,
+  .name = "gimbal",
+  .stack_size = 2048 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for chassis */
 osThreadId_t chassisHandle;
 const osThreadAttr_t chassis_attributes = {
-    .name = "chassis",
-    .stack_size = 1024 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+  .name = "chassis",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for game */
 osThreadId_t gameHandle;
 const osThreadAttr_t game_attributes = {
-    .name = "game",
-    .stack_size = 1024 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+  .name = "game",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for shoot */
 osThreadId_t shootHandle;
 const osThreadAttr_t shoot_attributes = {
-    .name = "shoot",
-    .stack_size = 1024 * 4,
-    .priority = (osPriority_t)osPriorityLow7,
+  .name = "shoot",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityLow7,
 };
 /* Definitions for super_power */
 osThreadId_t super_powerHandle;
 const osThreadAttr_t super_power_attributes = {
-    .name = "super_power",
-    .stack_size = 1024 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+  .name = "super_power",
+  .stack_size = 1024 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for vision */
 osThreadId_t visionHandle;
 const osThreadAttr_t vision_attributes = {
-    .name = "vision",
-    .stack_size = 2048 * 4,
-    .priority = (osPriority_t)osPriorityHigh,
+  .name = "vision",
+  .stack_size = 2048 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -197,10 +197,10 @@ void vApplicationMallocFailedHook(void) {
 /* USER CODE END 5 */
 
 /**
- * @brief  FreeRTOS initialization
- * @param  None
- * @retval None
- */
+  * @brief  FreeRTOS initialization
+  * @param  None
+  * @retval None
+  */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
@@ -224,8 +224,7 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle =
-      osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of dr16 */
   dr16Handle = osThreadNew(dr16_task, NULL, &dr16_attributes);
@@ -255,8 +254,7 @@ void MX_FREERTOS_Init(void) {
   shootHandle = osThreadNew(shoot_task, NULL, &shoot_attributes);
 
   /* creation of super_power */
-  super_powerHandle =
-      osThreadNew(super_power_task, NULL, &super_power_attributes);
+  super_powerHandle = osThreadNew(super_power_task, NULL, &super_power_attributes);
 
   /* creation of vision */
   visionHandle = osThreadNew(vision_task, NULL, &vision_attributes);
@@ -268,6 +266,7 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
+
 }
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -277,7 +276,8 @@ void MX_FREERTOS_Init(void) {
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument) {
+void StartDefaultTask(void *argument)
+{
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
   for (;;) {
@@ -294,7 +294,8 @@ void StartDefaultTask(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_dr16_task */
-__weak void dr16_task(void *argument) {
+__weak void dr16_task(void *argument)
+{
   /* USER CODE BEGIN dr16_task */
   /* Infinite loop */
   for (;;) {
@@ -310,7 +311,8 @@ __weak void dr16_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_vt13_task */
-__weak void vt13_task(void *argument) {
+__weak void vt13_task(void *argument)
+{
   /* USER CODE BEGIN vt13_task */
   /* Infinite loop */
   for (;;) {
@@ -326,7 +328,8 @@ __weak void vt13_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_imu_can_task */
-__weak void imu_can_task(void *argument) {
+__weak void imu_can_task(void *argument)
+{
   /* USER CODE BEGIN imu_can_task */
   /* Infinite loop */
   for (;;) {
@@ -342,7 +345,8 @@ __weak void imu_can_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_i6X_task */
-__weak void i6X_task(void *argument) {
+__weak void i6X_task(void *argument)
+{
   /* USER CODE BEGIN i6X_task */
   /* Infinite loop */
   for (;;) {
@@ -358,7 +362,8 @@ __weak void i6X_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_imu_485_task */
-__weak void imu_485_task(void *argument) {
+__weak void imu_485_task(void *argument)
+{
   /* USER CODE BEGIN imu_485_task */
   /* Infinite loop */
   for (;;) {
@@ -374,7 +379,8 @@ __weak void imu_485_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_gimbal_task */
-__weak void gimbal_task(void *argument) {
+__weak void gimbal_task(void *argument)
+{
   /* USER CODE BEGIN gimbal_task */
   /* Infinite loop */
   for (;;) {
@@ -390,7 +396,8 @@ __weak void gimbal_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_chassis_task */
-__weak void chassis_task(void *argument) {
+__weak void chassis_task(void *argument)
+{
   /* USER CODE BEGIN chassis_task */
   /* Infinite loop */
   for (;;) {
@@ -406,7 +413,8 @@ __weak void chassis_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_game_task */
-__weak void game_task(void *argument) {
+__weak void game_task(void *argument)
+{
   /* USER CODE BEGIN game_task */
   /* Infinite loop */
   for (;;) {
@@ -422,7 +430,8 @@ __weak void game_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_shoot_task */
-__weak void shoot_task(void *argument) {
+__weak void shoot_task(void *argument)
+{
   /* USER CODE BEGIN shoot_task */
   /* Infinite loop */
   for (;;) {
@@ -438,7 +447,8 @@ __weak void shoot_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_super_power_task */
-__weak void super_power_task(void *argument) {
+__weak void super_power_task(void *argument)
+{
   /* USER CODE BEGIN super_power_task */
   /* Infinite loop */
   for (;;) {
@@ -454,7 +464,8 @@ __weak void super_power_task(void *argument) {
  * @retval None
  */
 /* USER CODE END Header_vision_task */
-__weak void vision_task(void *argument) {
+__weak void vision_task(void *argument)
+{
   /* USER CODE BEGIN vision_task */
   /* Infinite loop */
   for (;;) {
@@ -467,3 +478,4 @@ __weak void vision_task(void *argument) {
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
+
